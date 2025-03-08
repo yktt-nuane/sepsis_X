@@ -1,58 +1,115 @@
+# Sepsis X Bot
 
-# Welcome to your CDK Python project!
+自動的に敗血症データの更新をX（Twitter）に投稿するAWS CDKプロジェクトです。毎日日本時間の午前10時に、その日の敗血症データへのリンクを含むメッセージが投稿されます。
 
-This is a blank project for CDK development with Python.
+## 概要
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+このプロジェクトは以下のAWSサービスを使用しています：
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+- **AWS Lambda**: X（Twitter）への投稿を実行
+- **AWS EventBridge**: 毎日定時に実行するためのスケジューリング
+- **AWS Secrets Manager**: X API認証情報の安全な保管
+- **AWS CDK**: インフラストラクチャをコードとして定義
 
-To manually create a virtualenv on MacOS and Linux:
+## 前提条件
 
-```
-$ python3 -m venv .venv
-```
+- AWS CLI がインストールされ、適切に設定されていること
+- Python 3.9 以上
+- AWS CDK v2
+- X（Twitter）デベロッパーアカウントとAPI認証情報
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+## セットアップ手順
 
-```
-$ source .venv/bin/activate
-```
+### 1. リポジトリのクローン
 
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .venv\Scripts\activate.bat
+```bash
+git clone [repository-url]
+cd sepsis_x_project
 ```
 
-Once the virtualenv is activated, you can install the required dependencies.
+### 2. 環境変数の設定
+
+`.env` ファイルを作成し、以下の内容を設定します：
 
 ```
-$ pip install -r requirements.txt
+# AWS Configuration
+AWS_ACCOUNT_ID=あなたのAWSアカウントID
+AWS_REGION=ap-northeast-1
 ```
 
-At this point you can now synthesize the CloudFormation template for this code.
+### 3. X API認証情報の設定
+
+AWS Secrets Managerに以下の形式でシークレットを作成します：
+
+1. AWS Management Consoleにログイン
+2. Secrets Managerに移動
+3. 「新しいシークレットを保存」を選択
+4. 「その他のタイプのシークレット」を選択
+5. 以下のキーと値のペアを追加：
+   - `api_key`: あなたのX API Key
+   - `api_key_secret`: あなたのX API Key Secret
+   - `access_token`: あなたのX Access Token
+   - `access_token_secret`: あなたのX Access Token Secret
+   - `bearer_token`: あなたのX Bearer Token
+6. シークレット名を `twitter-api-keys` として保存
+
+### 4. 依存関係のインストール
+
+```bash
+# CDK依存関係のインストール
+pip install -r requirements.txt
+
+# Lambda Layer用の依存関係準備
+chmod +x build_layer.sh
+./build_layer.sh
+```
+
+### 5. デプロイ
+
+```bash
+cdk bootstrap
+cdk deploy
+```
+
+## プロジェクト構造
 
 ```
-$ cdk synth
+sepsis_x_project/
+├── .env                          # 環境変数
+├── app.py                        # CDKアプリケーションエントリーポイント
+├── requirements.txt              # CDKプロジェクト用依存関係
+├── requirements-lambda.txt       # Lambda Layer用依存関係
+├── build_layer.sh                # Lambdaレイヤーを構築するスクリプト
+├── lambda/                       # Lambda関数コード
+│   └── twitter_bot.py            # メインLambda関数
+├── lambda_layer/                 # build_layer.shによって作成される
+└── sepsis_x/                     # CDK Stackディレクトリ
+    ├── __init__.py
+    └── sepsis_x_stack.py         # CDK Stack定義
 ```
 
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
+## 投稿フォーマット
 
-## Useful commands
+毎日投稿されるメッセージのフォーマットは以下の通りです：
 
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+```
+本日の敗血症
+https://www.sepsis-search.com/articles?date=YYYY-MM-DD
+```
 
-Enjoy!
+日付は日本時間の現在の日付（YYYY-MM-DD形式）で自動的に設定されます。
+
+## カスタマイズ
+
+- 投稿の内容を変更する場合は、`lambda/twitter_bot.py` ファイルの `post_to_twitter` 関数内の `message` 変数を編集します。
+- 投稿時間を変更する場合は、`sepsis_x/sepsis_x_stack.py` ファイル内の `daily_schedule` 定義のcron式を修正します。
+
+## トラブルシューティング
+
+- Lambda関数の実行ログはCloudWatchで確認できます。
+- 認証エラーが発生する場合は、Secrets Managerの認証情報が正しく設定されているか確認してください。
+- スケジュールの問題がある場合は、EventBridgeのルールを確認してください。
+
+## ライセンス
+
+[ライセンス情報]
