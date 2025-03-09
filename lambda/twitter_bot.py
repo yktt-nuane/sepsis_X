@@ -45,7 +45,7 @@ def post_to_twitter(api_key, api_key_secret, access_token, access_token_secret, 
 
     # Create message
     message = f"""✅本日の敗血症
-https://www.sepsis-search.com/articles?date={today}"""
+https://www.sepsis-search.com/analysis?date={today}"""
 
     # Set up Tweepy Client using Twitter API v2
     client = tweepy.Client(
