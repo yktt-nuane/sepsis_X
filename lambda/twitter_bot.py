@@ -37,16 +37,28 @@ def get_twitter_credentials():
 
     return None
 
-def post_to_twitter(api_key, api_key_secret, access_token, access_token_secret, bearer_token):
+def post_to_twitter(api_key, api_key_secret, access_token, access_token_secret, bearer_token, post_type="sepsis"):
     """Post to Twitter using the Tweepy library."""
     # Get the current date in Japan timezone
     japan_timezone = pytz.timezone('Asia/Tokyo')
     today = datetime.now(japan_timezone).strftime('%Y-%m-%d')
 
-    # Create message
-    message = f"""today's sepsis - 本日の敗血症
+    # Create message based on post_type
+    if post_type == "sepsis":
+        message = f"""today's sepsis - 本日の敗血症
     #Sepsis #敗血症 #敗血症検索
 https://www.sepsis-search.com/analysis?date={today}"""
+    elif post_type == "ards":
+        message = f"""today's ARDS - 本日のARDS
+    #ARDS #急性呼吸窮迫症候群
+https://www.ards-tracker.com/analysis?date={today}"""
+    else:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': f'Invalid post_type: {post_type}'
+            })
+        }
 
     # Set up Tweepy Client using Twitter API v2
     client = tweepy.Client(
@@ -63,7 +75,7 @@ https://www.sepsis-search.com/analysis?date={today}"""
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Tweet posted successfully!',
+                'message': f'{post_type.capitalize()} tweet posted successfully!',
                 'tweet_id': response.data['id']
             })
         }
@@ -71,13 +83,16 @@ https://www.sepsis-search.com/analysis?date={today}"""
         return {
             'statusCode': 500,
             'body': json.dumps({
-                'message': f'Error posting tweet: {str(e)}'
+                'message': f'Error posting {post_type} tweet: {str(e)}'
             })
         }
 
 def lambda_handler(event, context):
-    """Lambda function handler to post daily sepsis update to Twitter."""
+    """Lambda function handler to post daily updates to Twitter."""
     try:
+        # Get the post type from the event
+        post_type = event.get('post_type', 'sepsis')  # Default to sepsis if not specified
+        
         # Get Twitter credentials from Secrets Manager
         twitter_creds = get_twitter_credentials()
 
@@ -93,7 +108,8 @@ def lambda_handler(event, context):
             twitter_creds['api_key_secret'],
             twitter_creds['access_token'],
             twitter_creds['access_token_secret'],
-            twitter_creds['bearer_token']
+            twitter_creds['bearer_token'],
+            post_type
         )
 
     except Exception as e:

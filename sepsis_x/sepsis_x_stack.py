@@ -37,7 +37,7 @@ class SepsisXStack(Stack):
             resources=[secret_arn]
         ))
 
-        # Define the Lambda function
+        # Define the Lambda function for Twitter posts
         twitter_lambda = lambda_.Function(
             self, "TwitterBotFunction",
             runtime=lambda_.Runtime.PYTHON_3_9,
@@ -49,12 +49,12 @@ class SepsisXStack(Stack):
             },
             role=twitter_lambda_role,
             layers=[twitter_layer],
-            description="Lambda function to post daily sepsis updates to Twitter/X",
+            description="Lambda function to post daily sepsis and ARDS updates to Twitter/X",
         )
 
-        # Schedule the Lambda to run daily at 10:00 AM Japan time (01:00 AM UTC)
-        daily_schedule = events.Rule(
-            self, "DailyTwitterBotSchedule",
+        # Schedule the Lambda to run daily at 10:00 AM Japan time (01:00 AM UTC) for Sepsis posts
+        sepsis_schedule = events.Rule(
+            self, "DailySepsisBotSchedule",
             schedule=events.Schedule.cron(
                 minute="0",
                 hour="1",  # 10:00 AM JST = 01:00 AM UTC
@@ -65,5 +65,31 @@ class SepsisXStack(Stack):
             description="Trigger for daily Twitter posts about sepsis at 10:00 AM JST",
         )
 
-        # Add the Lambda function as a target for the scheduled event
-        daily_schedule.add_target(targets.LambdaFunction(twitter_lambda))
+        # Schedule the Lambda to run daily at 10:30 AM Japan time (01:30 AM UTC) for ARDS posts
+        ards_schedule = events.Rule(
+            self, "DailyARDSBotSchedule",
+            schedule=events.Schedule.cron(
+                minute="30",
+                hour="1",  # 10:30 AM JST = 01:30 AM UTC
+                month="*",
+                week_day="*",
+                year="*",
+            ),
+            description="Trigger for daily Twitter posts about ARDS at 10:30 AM JST",
+        )
+
+        # Add the Lambda function as a target for the sepsis scheduled event
+        sepsis_schedule.add_target(
+            targets.LambdaFunction(
+                twitter_lambda,
+                event=events.RuleTargetInput.from_object({"post_type": "sepsis"})
+            )
+        )
+        
+        # Add the Lambda function as a target for the ARDS scheduled event
+        ards_schedule.add_target(
+            targets.LambdaFunction(
+                twitter_lambda,
+                event=events.RuleTargetInput.from_object({"post_type": "ards"})
+            )
+        )
