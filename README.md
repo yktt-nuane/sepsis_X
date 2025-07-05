@@ -94,7 +94,7 @@ sepsis_x_project/
 
 ```
 本日の敗血症
-https://www.sepsis-search.com/articles?date=YYYY-MM-DD
+https://www.sepsis-tracker.com/articles?date=YYYY-MM-DD
 ```
 
 日付は日本時間の現在の日付（YYYY-MM-DD形式）で自動的に設定されます。

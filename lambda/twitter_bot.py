@@ -47,7 +47,7 @@ def post_to_twitter(api_key, api_key_secret, access_token, access_token_secret, 
     if post_type == "sepsis":
         message = f"""today's sepsis - 本日の敗血症
     #Sepsis #敗血症 #敗血症検索
-https://www.sepsis-search.com/analysis?date={today}"""
+https://www.sepsis-tracker.com/analysis?date={today}"""
     elif post_type == "ards":
         message = f"""today's ARDS - 本日のARDS
     #ARDS #急性呼吸窮迫症候群
